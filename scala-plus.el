@@ -137,6 +137,7 @@ IE:
      (define-key scala-mode-map (kbd "s-R") 'scala-plus:yank-sbt-test-only)
      (define-key scala-mode-map (kbd "C-c , t") 'scala-test:toggle-spec-test)
      (define-key scala-mode-map (kbd "C-c p") 'scala-plus:set-package-name)
+     (define-key scala-mode-map (kbd "C-c f") 'insert-file-basename)
      (add-hook 'scala-mode-hook 'scala-plus:set-imenu-generic-expression)))
 
 (provide 'scala-plus)
