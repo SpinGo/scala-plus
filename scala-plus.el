@@ -21,7 +21,12 @@
 (defun scala-plus:yank-sbt-test-only ()
   "Copies expression necessary to run the current test suite in an sbt repl"
   (interactive)
-  (let ((cmd (format "test-only %s.%s" (scala-plus:buffer-package-name) (scala-plus:guess-outer-class))))
+  (let* ((spec-name (scala-plus:guess-spec-name))
+         (package-name (scala-plus:buffer-package-name))
+         (outer-class (scala-plus:guess-outer-class))
+         (cmd (if spec-name
+                  (format "test-only %s.%s -- -z %S" package-name outer-class spec-name)
+                (format "test-only %s.%s" package-name outer-class))))
     (kill-new cmd)
     (message "Copied '%s' to the killring" cmd)))
 
@@ -69,6 +74,19 @@
       (setq point-start (point))
       (search-forward-regexp "[^0-9a-z._]")
       (buffer-substring-no-properties point-start (- (point) 1)))))
+
+(defun scala-plus:guess-spec-name ()
+  "Returns outer class name containing the current point. Requires class name to be indented fully left."
+  (let ((point-start))
+    (condition-case nil
+        (save-excursion
+          (search-backward-regexp "^ *\\(it\\|describe\\)\\b[ \\t]*(\"")
+          (search-forward-regexp "^ *\\(it\\|describe\\)\\b[ \\t]*([ \\t]*\"")
+          (setq point-start (point))
+          (search-forward-regexp "\"[ \\t]*)")
+          (search-backward-regexp "\"[ \\t]*)")
+          (buffer-substring-no-properties point-start (point)))
+      (error nil))))
 
 (defun scala-plus:guess-outer-class ()
   "Returns outer class name containing the current point. Requires class name to be indented fully left."
