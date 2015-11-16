@@ -65,15 +65,37 @@
 
 ;;; general scala helpers
 
+
+(let ((fn (lambda (x) x)))
+  (message "%s" (funcall fn 5)))
+
+(let ((fn (lambda (x)
+            (if (> x 5)
+                x
+              (funcall fn (+ 1 x))))))
+  (message "%s" (funcall fn 1)))
+
 (defun scala-plus:buffer-package-name ()
-  "Pulls the package name from the current file"
+  "Pulls the package name from the current file. If multiple packages declared before the point, then collect those too."
   (let ((point-start))
     (save-excursion
-      (goto-char 0)
-      (search-forward-regexp "^ *package *")
-      (setq point-start (point))
-      (search-forward-regexp "[^0-9a-z._]")
-      (buffer-substring-no-properties point-start (- (point) 1)))))
+      (let* ((limit (point))
+             (iter (lambda (collected)
+                     (let ((package-segment
+                            (and
+                             (search-forward-regexp "^ *package *" limit t)
+                             (let ((point-start (point)))
+                               (search-forward-regexp "[^0-9A-Za-z._]")
+                               (buffer-substring-no-properties point-start (- (point) 1))))))
+
+                       (if package-segment
+                           (funcall iter (append collected (list package-segment)))
+                         collected)))))
+
+        (goto-char 0)
+        (mapconcat 'identity
+                   (funcall iter nil)
+                   ".")))))
 
 (defun scala-plus:guess-spec-name ()
   "Returns outer class name containing the current point. Requires class name to be indented fully left."
