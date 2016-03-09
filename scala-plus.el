@@ -44,36 +44,46 @@
   (setq imenu-generic-expression scala-plus:imenu-generic-expression))
 
 
+(defvar scala-test:main-file-format
+  "%s/src/main/scala/%s%s.scala"
+  "scala test format")
+
+(defvar scala-test:test-file-format
+  "%s/src/test/scala/%s%sSpec.scala"
+  "scala test format")
+
+;; (setq scala-test:main-file-format "%s/src/main/scala/%s%s.scala")
+;; (setq scala-test:test-file-format "%s/src/test/scala/%sTest%s.scala")
+
+(defun scala-test:format-to-regex (fmt)
+  (format
+   (replace-regexp-in-string "\\." "\\\\." fmt)
+   "\\(.+\\)" "\\(.+/\\)?" "\\([^/]+\\)"))
+
 (defun scala-test:toggle-spec-test ()
   "Toggle between test and spec"
   (interactive)
   (let* ((path buffer-file-name)
-         (spec-regex "^\\(.+\\)/src/test/scala/\\(.+\\)Spec\\.scala" )
-         (main-regex "^\\(.+\\)/src/main/scala/\\(.+\\)\\.scala")
+
+         (main-regex (scala-test:format-to-regex scala-test:main-file-format))
+         (spec-regex (scala-test:format-to-regex scala-test:test-file-format))
+
          (other-path 
           (cond ((string-match spec-regex path)
-                 (format "%s/src/main/scala/%s.scala" 
+                 (format scala-test:main-file-format
                          (match-string 1 path)
-                         (match-string 2 path)))
+                         (match-string 2 path)
+                         (match-string 3 path)))
                 ((string-match main-regex path)
-                 (format "%s/src/test/scala/%sSpec.scala" 
+                 (format scala-test:test-file-format
                          (match-string 1 path)
-                         (match-string 2 path))))))
+                         (match-string 2 path)
+                         (match-string 3 path))))))
     (message "%s" other-path)
     (find-file other-path)))
 
 
 ;;; general scala helpers
-
-
-(let ((fn (lambda (x) x)))
-  (message "%s" (funcall fn 5)))
-
-(let ((fn (lambda (x)
-            (if (> x 5)
-                x
-              (funcall fn (+ 1 x))))))
-  (message "%s" (funcall fn 1)))
 
 (defun scala-plus:buffer-package-name ()
   "Pulls the package name from the current file. If multiple packages declared before the point, then collect those too."
