@@ -18,6 +18,8 @@
 
 ;;; scala-test helpers
 
+(defcustom scala-plus:test-only-command "test-only" "The sbt command used to invoke test-only")
+
 (defun scala-plus:yank-sbt-test-only ()
   "Copies expression necessary to run the current test suite in an sbt repl"
   (interactive)
@@ -25,8 +27,8 @@
          (package-name (scala-plus:buffer-package-name))
          (outer-class (scala-plus:guess-outer-class))
          (cmd (if spec-name
-                  (format "test-only %s.%s -- -z %S" package-name outer-class spec-name)
-                (format "test-only %s.%s" package-name outer-class))))
+                  (format "%s %s.%s -- -z %s" scala-plus:test-only-command package-name outer-class spec-name)
+                (format "%s %s.%s" scala-plus:test-only-command package-name outer-class))))
     (kill-new cmd)
     (message "Copied '%s' to the killring" cmd)))
 
@@ -52,8 +54,14 @@
   "%s/src/test/scala/%s%sSpec.scala"
   "scala test format")
 
+(put 'scala-test:main-file-format 'safe-local-variable #'stringp)
+(put 'scala-test:test-file-format 'safe-local-variable #'stringp)
+
 ;; (setq scala-test:main-file-format "%s/src/main/scala/%s%s.scala")
 ;; (setq scala-test:test-file-format "%s/src/test/scala/%sTest%s.scala")
+
+;; (setq scala-test:main-file-format "%s/src/main/scala/%s%s.scala")
+;; (setq scala-test:test-file-format "%s/src/test/scala/%s%sTest.scala")
 
 (defun scala-test:format-to-regex (fmt)
   (format
@@ -112,11 +120,10 @@
   (let ((point-start))
     (condition-case nil
         (save-excursion
-          (search-backward-regexp "^ *\\(it\\|describe\\)\\b[ \\t]*(\"")
-          (search-forward-regexp "^ *\\(it\\|describe\\)\\b[ \\t]*([ \\t]*\"")
+          (search-backward-regexp "^ *\\(it\\|test\\|describe\\)\\b[ \\t]*(\"")
+          (search-forward-regexp "^ *\\(it\\|test\\|describe\\)\\b[ \\t]*([ \\t]*")
           (setq point-start (point))
-          (search-forward-regexp "\"[ \\t]*)")
-          (search-backward-regexp "\"[ \\t]*)")
+          (forward-sexp)
           (buffer-substring-no-properties point-start (point)))
       (error nil))))
 
