@@ -20,17 +20,28 @@
 
 (defcustom scala-plus:test-only-command "test-only" "The sbt command used to invoke test-only")
 
-(defun scala-plus:yank-sbt-test-only ()
-  "Copies expression necessary to run the current test suite in an sbt repl"
+(defun scala-plus:sbt-test-only-cmd ()
+  "Returns sbt command necessary to run the current test suite in an sbt repl"
   (interactive)
   (let* ((spec-name (scala-plus:guess-spec-name))
          (package-name (scala-plus:buffer-package-name))
          (outer-class (scala-plus:guess-outer-class))
          (cmd (if spec-name
-                  (format "%s %s.%s -- -z %s" scala-plus:test-only-command package-name outer-class spec-name)
-                (format "%s %s.%s" scala-plus:test-only-command package-name outer-class))))
+                  (format "%s %s.%s -- -z %s -oF" scala-plus:test-only-command package-name outer-class spec-name)
+                (format "%s %s.%s -- -oF" scala-plus:test-only-command package-name outer-class))))
+    cmd))
+
+(defun scala-plus:yank-sbt-test-only ()
+  "Copies expression necessary to run the current test suite in an sbt repl"
+  (interactive)
+  (let* ((cmd (scala-plus:sbt-test-only-cmd)))
     (kill-new cmd)
     (message "Copied '%s' to the killring" cmd)))
+
+(defun scala-plus:do-sbt-test-only ()
+  "Runs test-only for test under point"
+  (interactive)
+  (sbt-command (scala-plus:sbt-test-only-cmd)))
 
 (defvar scala-plus:imenu-generic-expression
   '(("Classes / Objects / Traits"   "^ *\\(\\(class\\|trait\\|object\\) +\\([a-zA-Z0-9_]+\\)\\)" 1)
@@ -115,7 +126,20 @@
                    (funcall iter nil)
                    ".")))))
 
-(defun scala-plus:guess-spec-name ()
+(defun scala-plus:guess-wordspec-name ()
+  "Returns outer class name containing the current point. Requires class name to be indented fully left."
+  (let ((point-end))
+    (condition-case nil
+        (save-excursion
+          (search-backward-regexp "^ *\".+\\b\\(should\\|in\\|when\\) ")
+          (forward-sexp)
+          (setq point-end (point))
+          (backward-sexp)
+          
+          (buffer-substring-no-properties (point) point-end))
+      (error nil))))
+
+(defun scala-plus:guess-funspec-name ()
   "Returns outer class name containing the current point. Requires class name to be indented fully left."
   (let ((point-start))
     (condition-case nil
@@ -126,6 +150,10 @@
           (forward-sexp)
           (buffer-substring-no-properties point-start (point)))
       (error nil))))
+
+(defun scala-plus:guess-spec-name ()
+  "Returns the spec name; first, it looks for a funspec pattern, then, wordspec."
+  (or (scala-plus:guess-funspec-name) (scala-plus:guess-wordspec-name)))
 
 (defun scala-plus:guess-outer-class ()
   "Returns outer class name containing the current point. Requires class name to be indented fully left."
@@ -171,12 +199,16 @@ IE:
       (insert package-name))))
 
 
-(eval-after-load 'scala-mode2
+(eval-after-load 'scala-mode
   '(progn
      (define-key scala-mode-map (kbd "s-R") 'scala-plus:yank-sbt-test-only)
      (define-key scala-mode-map (kbd "C-c , t") 'scala-test:toggle-spec-test)
      (define-key scala-mode-map (kbd "C-c p") 'scala-plus:set-package-name)
      (define-key scala-mode-map (kbd "C-c f") 'insert-file-basename)
      (add-hook 'scala-mode-hook 'scala-plus:set-imenu-generic-expression)))
+
+(eval-after-load 'ensime-mode
+  '(progn
+     (define-key ensime-mode-map (kbd "C-c C-b C-o") 'scala-plus:do-sbt-test-only)))
 
 (provide 'scala-plus)
