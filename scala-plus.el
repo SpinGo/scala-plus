@@ -207,8 +207,4 @@ IE:
      (define-key scala-mode-map (kbd "C-c f") 'insert-file-basename)
      (add-hook 'scala-mode-hook 'scala-plus:set-imenu-generic-expression)))
 
-(eval-after-load 'ensime-mode
-  '(progn
-     (define-key ensime-mode-map (kbd "C-c C-b C-o") 'scala-plus:do-sbt-test-only)))
-
 (provide 'scala-plus)
